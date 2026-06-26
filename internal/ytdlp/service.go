@@ -16,14 +16,15 @@ type VideoInfo struct {
 }
 
 type Format struct {
-	FormatID    string
-	Ext         string
-	Resolution  string
-	Filesize    int64
-	VCodec      string
-	ACodec      string
-	ABitrate    float64
-	IsAudioOnly bool
+	FormatID        string
+	Ext             string
+	Resolution      string
+	Filesize        int64
+	VCodec          string
+	ACodec          string
+	ABitrate        float64
+	IsAudioOnly     bool
+	NeedsAudioMerge bool // video-only stream; download handler appends +bestaudio
 }
 
 type rawFormat struct {
@@ -120,19 +121,25 @@ func parseVideoInfo(raw *rawVideoInfo) *VideoInfo {
 	}
 	for _, f := range raw.Formats {
 		isAudioOnly := f.VCodec == "none" && f.ACodec != "none"
+		isVideoOnly := f.VCodec != "none" && f.ACodec == "none"
 		isVideoAudio := f.VCodec != "none" && f.ACodec != "none"
-		if !isAudioOnly && !isVideoAudio {
-			continue // skip video-only streams (require ffmpeg merge — out of scope)
+		if !isAudioOnly && !isVideoOnly && !isVideoAudio {
+			continue
+		}
+		ext := f.Ext
+		if isVideoOnly {
+			ext = "mkv" // yt-dlp merges to mkv when writing to stdout
 		}
 		info.Formats = append(info.Formats, Format{
-			FormatID:    f.FormatID,
-			Ext:         f.Ext,
-			Resolution:  resolutionLabel(f, isAudioOnly),
-			Filesize:    f.Filesize,
-			VCodec:      f.VCodec,
-			ACodec:      f.ACodec,
-			ABitrate:    f.ABR,
-			IsAudioOnly: isAudioOnly,
+			FormatID:        f.FormatID,
+			Ext:             ext,
+			Resolution:      resolutionLabel(f, isAudioOnly),
+			Filesize:        f.Filesize,
+			VCodec:          f.VCodec,
+			ACodec:          f.ACodec,
+			ABitrate:        f.ABR,
+			IsAudioOnly:     isAudioOnly,
+			NeedsAudioMerge: isVideoOnly,
 		})
 	}
 	return info

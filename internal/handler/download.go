@@ -11,7 +11,7 @@ import (
 	"github.com/gunadi/ytdl/internal/ytdlp"
 )
 
-var validExt = map[string]bool{"mp4": true, "webm": true, "m4a": true, "opus": true}
+var validExt = map[string]bool{"mp4": true, "webm": true, "m4a": true, "opus": true, "mkv": true}
 
 var validFormatID = regexp.MustCompile(`^[a-zA-Z0-9_\-+]+$`)
 
@@ -28,13 +28,14 @@ func (h *DownloadHandler) Handle(c *gin.Context) {
 	formatID := c.Query("format_id")
 	ext := c.Query("ext")
 	title := c.Query("title")
+	needsMerge := c.Query("needs_merge") == "1"
 
 	if rawURL == "" || formatID == "" || ext == "" {
 		c.String(http.StatusBadRequest, "missing required parameters: url, format_id, ext")
 		return
 	}
 	if !validExt[ext] {
-		c.String(http.StatusBadRequest, "invalid ext: must be one of mp4, webm, m4a, opus")
+		c.String(http.StatusBadRequest, "invalid ext: must be one of mp4, webm, m4a, opus, mkv")
 		return
 	}
 	if !validFormatID.MatchString(formatID) {
@@ -46,7 +47,12 @@ func (h *DownloadHandler) Handle(c *gin.Context) {
 		return
 	}
 
-	r, err := h.svc.Stream(c.Request.Context(), rawURL, formatID)
+	streamFormat := formatID
+	if needsMerge {
+		streamFormat = formatID + "+bestaudio"
+	}
+
+	r, err := h.svc.Stream(c.Request.Context(), rawURL, streamFormat)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "failed to start stream: %s", err.Error())
 		return
@@ -85,6 +91,8 @@ func mimeForExt(ext string) string {
 		return "audio/mp4"
 	case "opus":
 		return "audio/ogg"
+	case "mkv":
+		return "video/x-matroska"
 	default:
 		return "application/octet-stream"
 	}

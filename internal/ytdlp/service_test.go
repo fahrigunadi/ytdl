@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestParseVideoInfo_FiltersVideoOnlyFormats(t *testing.T) {
+func TestParseVideoInfo_IncludesVideoOnlyFormats(t *testing.T) {
 	raw := &rawVideoInfo{
 		Title:     "Test Video",
 		Thumbnail: "https://img.youtube.com/thumb.jpg",
@@ -21,20 +21,35 @@ func TestParseVideoInfo_FiltersVideoOnlyFormats(t *testing.T) {
 	if info.Title != "Test Video" {
 		t.Errorf("expected title %q, got %q", "Test Video", info.Title)
 	}
-	if len(info.Formats) != 2 {
-		t.Fatalf("expected 2 formats (video-only 137 filtered), got %d", len(info.Formats))
+	if len(info.Formats) != 3 {
+		t.Fatalf("expected 3 formats (137 now included), got %d", len(info.Formats))
 	}
-	if info.Formats[0].FormatID != "18" {
-		t.Errorf("expected format 18, got %s", info.Formats[0].FormatID)
+
+	f137 := info.Formats[0]
+	if f137.FormatID != "137" {
+		t.Errorf("expected format 137, got %s", f137.FormatID)
 	}
-	if info.Formats[1].FormatID != "140" {
-		t.Errorf("expected format 140, got %s", info.Formats[1].FormatID)
+	if !f137.NeedsAudioMerge {
+		t.Error("format 137 should be NeedsAudioMerge=true")
 	}
-	if !info.Formats[1].IsAudioOnly {
+	if f137.Ext != "mkv" {
+		t.Errorf("video-only format ext should be mkv, got %s", f137.Ext)
+	}
+
+	f18 := info.Formats[1]
+	if f18.FormatID != "18" {
+		t.Errorf("expected format 18, got %s", f18.FormatID)
+	}
+	if f18.IsAudioOnly || f18.NeedsAudioMerge {
+		t.Error("format 18 should be regular video+audio")
+	}
+
+	f140 := info.Formats[2]
+	if f140.FormatID != "140" {
+		t.Errorf("expected format 140, got %s", f140.FormatID)
+	}
+	if !f140.IsAudioOnly {
 		t.Error("format 140 should be IsAudioOnly=true")
-	}
-	if info.Formats[0].IsAudioOnly {
-		t.Error("format 18 should be IsAudioOnly=false")
 	}
 }
 
