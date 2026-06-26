@@ -1,4 +1,4 @@
-module github.com/gunadi/ytdl
+module github.com/fahrigunadi/ytdl
 
 go 1.25.0
 

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gunadi/ytdl/internal/handler"
-	"github.com/gunadi/ytdl/internal/middleware"
-	"github.com/gunadi/ytdl/internal/ytdlp"
+	"github.com/fahrigunadi/ytdl/internal/handler"
+	"github.com/fahrigunadi/ytdl/internal/middleware"
+	"github.com/fahrigunadi/ytdl/internal/ytdlp"
 )
 
 func main() {

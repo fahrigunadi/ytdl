@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gunadi/ytdl/internal/ytdlp"
+	"github.com/fahrigunadi/ytdl/internal/ytdlp"
 )
 
 type InfoHandler struct {

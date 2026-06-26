@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gunadi/ytdl/internal/ytdlp"
+	"github.com/fahrigunadi/ytdl/internal/ytdlp"
 )
 
 var validExt = map[string]bool{"mp4": true, "webm": true, "m4a": true, "opus": true, "mkv": true}
