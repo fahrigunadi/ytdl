@@ -50,18 +50,23 @@ type Downloader interface {
 	Stream(ctx context.Context, url, formatID string) (io.ReadCloser, error)
 }
 
+const maxConcurrentDownloads = 5
+
 type Service struct {
 	ytdlpPath string
+	sem       chan struct{}
 }
 
 type cmdReadCloser struct {
 	io.ReadCloser
-	cmd *exec.Cmd
+	cmd     *exec.Cmd
+	release func()
 }
 
 func (c *cmdReadCloser) Close() error {
 	err := c.ReadCloser.Close()
 	c.cmd.Wait() //nolint:errcheck — subprocess exit code irrelevant after pipe close
+	c.release()
 	return err
 }
 
@@ -70,7 +75,10 @@ func New() (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("yt-dlp not found in PATH: %w", err)
 	}
-	return &Service{ytdlpPath: path}, nil
+	return &Service{
+		ytdlpPath: path,
+		sem:       make(chan struct{}, maxConcurrentDownloads),
+	}, nil
 }
 
 func (s *Service) GetFormats(ctx context.Context, url string) (*VideoInfo, error) {
@@ -95,6 +103,12 @@ func (s *Service) GetFormats(ctx context.Context, url string) (*VideoInfo, error
 }
 
 func (s *Service) Stream(ctx context.Context, url, formatID string) (io.ReadCloser, error) {
+	select {
+	case s.sem <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	cmd := exec.CommandContext(ctx, s.ytdlpPath,
 		"-f", formatID,
 		"-o", "-",
@@ -104,13 +118,15 @@ func (s *Service) Stream(ctx context.Context, url, formatID string) (io.ReadClos
 	)
 	r, err := cmd.StdoutPipe()
 	if err != nil {
+		<-s.sem
 		return nil, err
 	}
 	if err := cmd.Start(); err != nil {
 		r.Close()
+		<-s.sem
 		return nil, err
 	}
-	return &cmdReadCloser{ReadCloser: r, cmd: cmd}, nil
+	return &cmdReadCloser{ReadCloser: r, cmd: cmd, release: func() { <-s.sem }}, nil
 }
 
 func parseVideoInfo(raw *rawVideoInfo) *VideoInfo {
