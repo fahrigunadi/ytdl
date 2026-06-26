@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YT Downloader</title>
+  <script src="/static/htmx.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: block; }
+    .htmx-request.htmx-indicator { display: block; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-2xl">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">🎬 YT Downloader</h1>
+
+    <form
+      hx-post="/info"
+      hx-target="#result"
+      hx-swap="innerHTML"
+      hx-indicator="#spinner"
+    >
+      <div class="flex gap-2">
+        <input
+          type="url"
+          name="url"
+          required
+          placeholder="https://youtube.com/watch?v=..."
+          class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <button
+          type="submit"
+          class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg transition"
+        >
+          Cek
+        </button>
+      </div>
+      <div id="spinner" class="htmx-indicator mt-2 text-sm text-gray-500 text-center">
+        Mengambil info video...
+      </div>
+    </form>
+
+    <div id="result" class="mt-6"></div>
+  </div>
+</body>
+</html>

@@ -1,3 +1,73 @@
 {{ define "formats.html" }}
-<div>{{ .Info.Title }}</div>
+<div class="flex gap-4 mb-5">
+  <img src="{{ .Info.Thumbnail }}" alt="thumbnail" class="w-32 h-20 object-cover rounded-lg flex-shrink-0">
+  <div>
+    <p class="font-semibold text-gray-800 text-sm leading-snug">{{ .Info.Title }}</p>
+    <p class="text-xs text-gray-500 mt-1">{{ formatDuration .Info.Duration }}</p>
+  </div>
+</div>
+
+<div class="flex gap-2 mb-3">
+  <button
+    onclick="showTab('video')"
+    id="tab-video"
+    class="px-4 py-1 bg-blue-500 text-white rounded-full text-sm font-medium transition"
+  >Video</button>
+  <button
+    onclick="showTab('audio')"
+    id="tab-audio"
+    class="px-4 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-medium transition"
+  >Audio</button>
+</div>
+
+<div id="video-formats">
+  <table class="w-full text-sm">
+    <tbody>
+      {{ range .Info.Formats }}{{ if not .IsAudioOnly }}
+      <tr class="border-b last:border-0 hover:bg-gray-50">
+        <td class="py-2 font-medium w-20">{{ .Resolution }}</td>
+        <td class="py-2 text-gray-500 uppercase w-16">{{ .Ext }}</td>
+        <td class="py-2 text-gray-400 text-xs">{{ formatFilesize .Filesize }}</td>
+        <td class="py-2 text-right">
+          <a
+            href="/download?url={{ urlquery $.URL }}&format_id={{ .FormatID }}&ext={{ .Ext }}&title={{ urlquery $.Info.Title }}"
+            class="inline-block bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full transition"
+          >↓ Download</a>
+        </td>
+      </tr>
+      {{ end }}{{ end }}
+    </tbody>
+  </table>
+</div>
+
+<div id="audio-formats" class="hidden">
+  <table class="w-full text-sm">
+    <tbody>
+      {{ range .Info.Formats }}{{ if .IsAudioOnly }}
+      <tr class="border-b last:border-0 hover:bg-gray-50">
+        <td class="py-2 font-medium w-20">{{ .Resolution }}</td>
+        <td class="py-2 text-gray-500 uppercase w-16">{{ .Ext }}</td>
+        <td class="py-2 text-gray-400 text-xs">{{ formatFilesize .Filesize }}</td>
+        <td class="py-2 text-right">
+          <a
+            href="/download?url={{ urlquery $.URL }}&format_id={{ .FormatID }}&ext={{ .Ext }}&title={{ urlquery $.Info.Title }}"
+            class="inline-block bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full transition"
+          >↓ Download</a>
+        </td>
+      </tr>
+      {{ end }}{{ end }}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function showTab(tab) {
+  document.getElementById('video-formats').classList.toggle('hidden', tab !== 'video');
+  document.getElementById('audio-formats').classList.toggle('hidden', tab !== 'audio');
+  var active = 'px-4 py-1 bg-blue-500 text-white rounded-full text-sm font-medium transition';
+  var inactive = 'px-4 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-medium transition';
+  document.getElementById('tab-video').className = tab === 'video' ? active : inactive;
+  document.getElementById('tab-audio').className = tab === 'audio' ? active : inactive;
+}
+</script>
 {{ end }}
