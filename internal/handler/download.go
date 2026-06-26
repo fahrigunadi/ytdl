@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gunadi/ytdl/internal/ytdlp"
 )
+
+var validExt = map[string]bool{"mp4": true, "webm": true, "m4a": true, "opus": true}
+
+var validFormatID = regexp.MustCompile(`^[a-zA-Z0-9_\-+]+$`)
 
 type DownloadHandler struct {
 	svc ytdlp.Downloader
@@ -26,6 +31,14 @@ func (h *DownloadHandler) Handle(c *gin.Context) {
 
 	if rawURL == "" || formatID == "" || ext == "" {
 		c.String(http.StatusBadRequest, "missing required parameters: url, format_id, ext")
+		return
+	}
+	if !validExt[ext] {
+		c.String(http.StatusBadRequest, "invalid ext: must be one of mp4, webm, m4a, opus")
+		return
+	}
+	if !validFormatID.MatchString(formatID) {
+		c.String(http.StatusBadRequest, "invalid format_id")
 		return
 	}
 	if !IsYouTubeURL(rawURL) {

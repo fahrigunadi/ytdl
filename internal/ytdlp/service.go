@@ -106,6 +106,7 @@ func (s *Service) Stream(ctx context.Context, url, formatID string) (io.ReadClos
 		return nil, err
 	}
 	if err := cmd.Start(); err != nil {
+		r.Close()
 		return nil, err
 	}
 	return &cmdReadCloser{ReadCloser: r, cmd: cmd}, nil
