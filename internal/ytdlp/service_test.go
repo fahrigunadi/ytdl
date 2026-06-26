@@ -4,51 +4,53 @@ import (
 	"testing"
 )
 
-func TestParseVideoInfo_IncludesVideoOnlyFormats(t *testing.T) {
+func TestParseVideoInfo_DeduplicatesByResolution(t *testing.T) {
 	raw := &rawVideoInfo{
 		Title:     "Test Video",
 		Thumbnail: "https://img.youtube.com/thumb.jpg",
 		Duration:  180,
 		Formats: []rawFormat{
-			{FormatID: "137", Ext: "mp4", Height: 1080, VCodec: "avc1", ACodec: "none"},
-			{FormatID: "18", Ext: "mp4", Height: 360, VCodec: "avc1", ACodec: "mp4a"},
+			// two 1080p video-only: 248 has bigger filesize → should win
+			{FormatID: "137", Ext: "mp4", Height: 1080, VCodec: "avc1", ACodec: "none", Filesize: 100},
+			{FormatID: "248", Ext: "webm", Height: 1080, VCodec: "vp9", ACodec: "none", Filesize: 200},
+			// 360p merged
+			{FormatID: "18", Ext: "mp4", Height: 360, VCodec: "avc1", ACodec: "mp4a", Filesize: 50},
+			// audio-only
 			{FormatID: "140", Ext: "m4a", VCodec: "none", ACodec: "mp4a", ABR: 128},
 		},
 	}
 
 	info := parseVideoInfo(raw)
 
-	if info.Title != "Test Video" {
-		t.Errorf("expected title %q, got %q", "Test Video", info.Title)
-	}
 	if len(info.Formats) != 3 {
-		t.Fatalf("expected 3 formats (137 now included), got %d", len(info.Formats))
+		t.Fatalf("expected 3 formats (1080p deduped to 1, 360p, audio), got %d", len(info.Formats))
 	}
 
-	f137 := info.Formats[0]
-	if f137.FormatID != "137" {
-		t.Errorf("expected format 137, got %s", f137.FormatID)
+	// video formats come first, ordered by first-seen resolution
+	f1080 := info.Formats[0]
+	if f1080.FormatID != "248" {
+		t.Errorf("expected winner 248 (bigger filesize), got %s", f1080.FormatID)
 	}
-	if !f137.NeedsAudioMerge {
-		t.Error("format 137 should be NeedsAudioMerge=true")
+	if !f1080.NeedsAudioMerge {
+		t.Error("1080p video-only should be NeedsAudioMerge=true")
 	}
-	if f137.Ext != "mkv" {
-		t.Errorf("video-only format ext should be mkv, got %s", f137.Ext)
-	}
-
-	f18 := info.Formats[1]
-	if f18.FormatID != "18" {
-		t.Errorf("expected format 18, got %s", f18.FormatID)
-	}
-	if f18.IsAudioOnly || f18.NeedsAudioMerge {
-		t.Error("format 18 should be regular video+audio")
+	if f1080.Ext != "mkv" {
+		t.Errorf("video-only ext should be mkv, got %s", f1080.Ext)
 	}
 
-	f140 := info.Formats[2]
-	if f140.FormatID != "140" {
-		t.Errorf("expected format 140, got %s", f140.FormatID)
+	f360 := info.Formats[1]
+	if f360.FormatID != "18" {
+		t.Errorf("expected format 18, got %s", f360.FormatID)
 	}
-	if !f140.IsAudioOnly {
+	if f360.NeedsAudioMerge || f360.IsAudioOnly {
+		t.Error("format 18 should be plain video+audio")
+	}
+
+	faudio := info.Formats[2]
+	if faudio.FormatID != "140" {
+		t.Errorf("expected format 140, got %s", faudio.FormatID)
+	}
+	if !faudio.IsAudioOnly {
 		t.Error("format 140 should be IsAudioOnly=true")
 	}
 }

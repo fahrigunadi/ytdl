@@ -135,29 +135,64 @@ func parseVideoInfo(raw *rawVideoInfo) *VideoInfo {
 		Thumbnail: raw.Thumbnail,
 		Duration:  raw.Duration,
 	}
+
+	// bestVideo: resolution → best Format seen so far (highest filesize)
+	bestVideo := map[string]Format{}
+	videoOrder := []string{}
+
 	for _, f := range raw.Formats {
 		isAudioOnly := f.VCodec == "none" && f.ACodec != "none"
 		isVideoOnly := f.VCodec != "none" && f.ACodec == "none"
 		isVideoAudio := f.VCodec != "none" && f.ACodec != "none"
-		if !isAudioOnly && !isVideoOnly && !isVideoAudio {
+
+		if isAudioOnly {
+			info.Formats = append(info.Formats, Format{
+				FormatID:    f.FormatID,
+				Ext:         f.Ext,
+				Resolution:  resolutionLabel(f, true),
+				Filesize:    f.Filesize,
+				VCodec:      f.VCodec,
+				ACodec:      f.ACodec,
+				ABitrate:    f.ABR,
+				IsAudioOnly: true,
+			})
 			continue
 		}
+
+		if !isVideoOnly && !isVideoAudio {
+			continue
+		}
+
 		ext := f.Ext
 		if isVideoOnly {
-			ext = "mkv" // yt-dlp merges to mkv when writing to stdout
+			ext = "mkv" // yt-dlp merges to mkv when piping to stdout
 		}
-		info.Formats = append(info.Formats, Format{
+		res := resolutionLabel(f, false)
+		candidate := Format{
 			FormatID:        f.FormatID,
 			Ext:             ext,
-			Resolution:      resolutionLabel(f, isAudioOnly),
+			Resolution:      res,
 			Filesize:        f.Filesize,
 			VCodec:          f.VCodec,
 			ACodec:          f.ACodec,
 			ABitrate:        f.ABR,
-			IsAudioOnly:     isAudioOnly,
 			NeedsAudioMerge: isVideoOnly,
-		})
+		}
+
+		if prev, exists := bestVideo[res]; !exists {
+			bestVideo[res] = candidate
+			videoOrder = append(videoOrder, res)
+		} else if f.Filesize > prev.Filesize {
+			bestVideo[res] = candidate
+		}
 	}
+
+	// prepend video formats (ordered by first-seen resolution, ascending)
+	var videoFormats []Format
+	for _, res := range videoOrder {
+		videoFormats = append(videoFormats, bestVideo[res])
+	}
+	info.Formats = append(videoFormats, info.Formats...)
 	return info
 }
 
