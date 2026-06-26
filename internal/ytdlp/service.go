@@ -53,6 +53,17 @@ type Service struct {
 	ytdlpPath string
 }
 
+type cmdReadCloser struct {
+	io.ReadCloser
+	cmd *exec.Cmd
+}
+
+func (c *cmdReadCloser) Close() error {
+	err := c.ReadCloser.Close()
+	c.cmd.Wait() //nolint:errcheck — subprocess exit code irrelevant after pipe close
+	return err
+}
+
 func New() (*Service, error) {
 	path, err := exec.LookPath("yt-dlp")
 	if err != nil {
@@ -97,7 +108,7 @@ func (s *Service) Stream(ctx context.Context, url, formatID string) (io.ReadClos
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return r, nil
+	return &cmdReadCloser{ReadCloser: r, cmd: cmd}, nil
 }
 
 func parseVideoInfo(raw *rawVideoInfo) *VideoInfo {
