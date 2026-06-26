@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"encoding/base64"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -43,10 +44,14 @@ func TestDownloadHandler_MissingParams(t *testing.T) {
 	}
 }
 
+func b64(s string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(s))
+}
+
 func TestDownloadHandler_InvalidURL(t *testing.T) {
 	r := setupDownloadRouter(&mockStreamService{})
 	req := httptest.NewRequest(http.MethodGet,
-		"/download?url=https://twitter.com/v/1&format_id=18&ext=mp4&title=test", nil)
+		"/download?url="+b64("https://twitter.com/v/1")+"&format_id=18&ext=mp4&title=test", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -60,7 +65,7 @@ func TestDownloadHandler_StreamsBody(t *testing.T) {
 	r := setupDownloadRouter(svc)
 
 	req := httptest.NewRequest(http.MethodGet,
-		"/download?url=https://youtube.com/watch?v=abc&format_id=18&ext=mp4&title=My+Video", nil)
+		"/download?url="+b64("https://youtube.com/watch?v=abc")+"&format_id=18&ext=mp4&title=My+Video", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

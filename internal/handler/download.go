@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,16 +25,23 @@ func NewDownloadHandler(svc ytdlp.Downloader) *DownloadHandler {
 }
 
 func (h *DownloadHandler) Handle(c *gin.Context) {
-	rawURL := c.Query("url")
+	urlParam := c.Query("url")
 	formatID := c.Query("format_id")
 	ext := c.Query("ext")
 	title := c.Query("title")
 	needsMerge := c.Query("needs_merge") == "1"
 
-	if rawURL == "" || formatID == "" || ext == "" {
+	if urlParam == "" || formatID == "" || ext == "" {
 		c.String(http.StatusBadRequest, "missing required parameters: url, format_id, ext")
 		return
 	}
+
+	decoded, err := base64.RawURLEncoding.DecodeString(urlParam)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid url encoding")
+		return
+	}
+	rawURL := string(decoded)
 	if !validExt[ext] {
 		c.String(http.StatusBadRequest, "invalid ext: must be one of mp4, webm, m4a, opus, mkv")
 		return

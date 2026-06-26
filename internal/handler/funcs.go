@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"time"
@@ -10,7 +11,12 @@ func TemplateFuncs() template.FuncMap {
 	return template.FuncMap{
 		"formatDuration": formatDuration,
 		"formatFilesize": formatFilesize,
+		"b64url":         b64url,
 	}
+}
+
+func b64url(s string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(s))
 }
 
 func formatDuration(seconds int) string {

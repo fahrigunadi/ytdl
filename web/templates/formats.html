@@ -30,7 +30,7 @@
         <td class="py-2 text-gray-400 text-xs">{{ formatFilesize .Filesize }}</td>
         <td class="py-2 text-right">
           <a
-            href="/download?url={{ urlquery $.URL }}&format_id={{ .FormatID }}&ext={{ .Ext }}&title={{ urlquery $.Info.Title }}{{ if .NeedsAudioMerge }}&needs_merge=1{{ end }}"
+            href="/download?url={{ b64url $.URL }}&format_id={{ .FormatID }}&ext={{ .Ext }}&title={{ urlquery $.Info.Title }}{{ if .NeedsAudioMerge }}&needs_merge=1{{ end }}"
             class="inline-block bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full transition"
           >↓ Download</a>
         </td>
@@ -50,7 +50,7 @@
         <td class="py-2 text-gray-400 text-xs">{{ formatFilesize .Filesize }}</td>
         <td class="py-2 text-right">
           <a
-            href="/download?url={{ urlquery $.URL }}&format_id={{ .FormatID }}&ext={{ .Ext }}&title={{ urlquery $.Info.Title }}"
+            href="/download?url={{ b64url $.URL }}&format_id={{ .FormatID }}&ext={{ .Ext }}&title={{ urlquery $.Info.Title }}"
             class="inline-block bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full transition"
           >↓ Download</a>
         </td>
