@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +27,7 @@ type apiFormat struct {
 	IsAudioOnly     bool    `json:"is_audio_only"`
 	NeedsAudioMerge bool    `json:"needs_audio_merge"`
 	ABitrate        float64 `json:"abitrate,omitempty"`
+	DownloadURL     string  `json:"download_url"`
 }
 
 type apiInfoResponse struct {
@@ -34,22 +37,14 @@ type apiInfoResponse struct {
 	Formats   []apiFormat `json:"formats"`
 }
 
-// GetInfo handles GET /api/info?url=<base64url>
-// Returns JSON list of available formats for a YouTube URL.
-// Download: GET /download?url=<base64url>&format_id=<id>&ext=<ext>[&needs_merge=1]
+// GetInfo handles GET /api/info?url=<youtube-url>
+// Returns JSON list of available formats with ready-to-use download_url per format.
 func (h *APIHandler) GetInfo(c *gin.Context) {
-	urlParam := strings.TrimSpace(c.Query("url"))
-	if urlParam == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing url parameter (base64url-encoded YouTube URL)"})
+	rawURL := strings.TrimSpace(c.Query("url"))
+	if rawURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing url parameter"})
 		return
 	}
-
-	decoded, err := base64.RawURLEncoding.DecodeString(urlParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "url must be base64url-encoded"})
-		return
-	}
-	rawURL := string(decoded)
 
 	if !IsYouTubeURL(rawURL) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "only YouTube URLs are supported"})
@@ -62,6 +57,7 @@ func (h *APIHandler) GetInfo(c *gin.Context) {
 		return
 	}
 
+	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(rawURL))
 	formats := make([]apiFormat, len(info.Formats))
 	for i, f := range info.Formats {
 		formats[i] = apiFormat{
@@ -72,6 +68,7 @@ func (h *APIHandler) GetInfo(c *gin.Context) {
 			IsAudioOnly:     f.IsAudioOnly,
 			NeedsAudioMerge: f.NeedsAudioMerge,
 			ABitrate:        f.ABitrate,
+			DownloadURL:     buildDownloadURL(encodedURL, f, info.Title),
 		}
 	}
 
@@ -81,4 +78,17 @@ func (h *APIHandler) GetInfo(c *gin.Context) {
 		Duration:  info.Duration,
 		Formats:   formats,
 	})
+}
+
+func buildDownloadURL(encodedURL string, f ytdlp.Format, title string) string {
+	q := fmt.Sprintf("/download?url=%s&format_id=%s&ext=%s&title=%s",
+		encodedURL,
+		url.QueryEscape(f.FormatID),
+		url.QueryEscape(f.Ext),
+		url.QueryEscape(title),
+	)
+	if f.NeedsAudioMerge {
+		q += "&needs_merge=1"
+	}
+	return q
 }
