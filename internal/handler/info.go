@@ -21,7 +21,7 @@ func (h *InfoHandler) Handle(c *gin.Context) {
 	rawURL := strings.TrimSpace(c.PostForm("url"))
 	if !IsYouTubeURL(rawURL) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"Error": "URL tidak valid. Hanya YouTube yang didukung.",
+			"Error": "Invalid URL. Only YouTube is supported.",
 		})
 		return
 	}
@@ -29,7 +29,7 @@ func (h *InfoHandler) Handle(c *gin.Context) {
 	info, err := h.svc.GetFormats(c.Request.Context(), rawURL)
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"Error": "Gagal mengambil info video: " + err.Error(),
+			"Error": "Failed to fetch video info: " + err.Error(),
 		})
 		return
 	}

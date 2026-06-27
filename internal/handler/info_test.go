@@ -53,8 +53,8 @@ func TestInfoHandler_InvalidURL(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "tidak valid") {
-		t.Errorf("expected 'tidak valid' in body, got: %s", w.Body.String())
+	if !strings.Contains(w.Body.String(), "Invalid URL") {
+		t.Errorf("expected 'Invalid URL' in body, got: %s", w.Body.String())
 	}
 }
 
